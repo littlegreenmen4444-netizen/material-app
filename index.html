@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>素材分類助手</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EFEDE6;
+  --surface: #F7F5F0;
+  --card: #FFFFFF;
+  --border: rgba(28,26,20,0.08);
+  --border-md: rgba(28,26,20,0.14);
+  --ink: #1C1A14;
+  --ink-2: #5C5A52;
+  --ink-3: #9C9A92;
+  --accent: #1C1A14;
+  --accent-2: #3D3B33;
+  --green: #1A7A4A; --green-bg: #E8F5EE;
+  --red: #B83232; --red-bg: #FAEAEA;
+  --yellow: #C47A00; --yellow-bg: #FEF5E0;
+  --blue: #1A5280; --blue-bg: #E8F0FA;
+  --purple: #4A3A8A; --purple-bg: #EEEAFF;
+  --teal: #1A6A6A; --teal-bg: #E0F4F4;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px;
+  --mono: 'DM Mono', monospace;
+  --sans: 'Noto Sans TC', sans-serif;
+  --shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); background: var(--bg); color: var(--ink); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+button { font-family: var(--sans); cursor: pointer; }
+input, textarea, select { font-family: var(--sans); }
+
+.hdr { background: var(--card); border-bottom: 1px solid var(--border); height: 54px; display: flex; align-items: center; padding: 0 18px; gap: 14px; position: sticky; top: 0; z-index: 90; }
+.hdr-logo { width: 30px; height: 30px; background: var(--ink); border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; }
+.hdr-logo svg { width: 15px; height: 15px; fill: #fff; }
+.hdr-title { font-weight: 700; font-size: 14px; letter-spacing: -.02em; }
+.hdr-nav { display: flex; margin-left: 10px; gap: 2px; }
+.hn { padding: 5px 13px; border-radius: 20px; font-size: 13px; color: var(--ink-2); background: none; border: none; transition: all .15s; }
+.hn.on { background: var(--ink); color: #fff; font-weight: 500; }
+.hdr-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.hdr-btn { padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 1px solid var(--border-md); background: var(--surface); color: var(--ink-2); transition: all .15s; }
+.hdr-btn:hover { border-color: var(--ink); color: var(--ink); }
+.hdr-btn.connected { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+.pill { font-family: var(--mono); font-size: 11px; color: var(--ink-3); background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; }
+
+.pg { display: none; }
+.pg.on { display: flex; flex-direction: column; height: calc(100vh - 54px); overflow: hidden; }
+.pg.scroll { display: none; flex-direction: column; }
+.pg.scroll.on { display: flex; overflow-y: auto; }
+
+.dz-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.dz { width: 100%; max-width: 480px; border: 2px dashed var(--border-md); border-radius: var(--r-xl); padding: 52px 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; cursor: pointer; transition: all .2s; background: var(--surface); }
+.dz:hover, .dz.drag { border-color: var(--ink); background: #F0EDE6; }
+.dz-icon { width: 56px; height: 56px; background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); display: grid; place-items: center; }
+.dz-icon svg { width: 24px; height: 24px; stroke: var(--ink-3); fill: none; stroke-width: 1.5; }
+.dz h3 { font-size: 16px; font-weight: 700; }
+.dz p { font-size: 13px; color: var(--ink-2); text-align: center; line-height: 1.6; }
+.dz-cta { padding: 10px 24px; background: var(--ink); color: #fff; border: none; border-radius: 20px; font-size: 13px; font-weight: 600; }
+
+.editor { flex: 1; display: none; overflow: hidden; }
+.editor.on { display: flex; }
+
+.strip { width: 108px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); overflow-y: auto; padding: 8px 7px; display: flex; flex-direction: column; gap: 5px; }
+.strip::-webkit-scrollbar { width: 3px; }
+.strip::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 3px; }
+.th-add { aspect-ratio: 1; border: 1.5px dashed var(--border-md); border-radius: var(--r-sm); display: grid; place-items: center; color: var(--ink-3); font-size: 22px; cursor: pointer; flex-shrink: 0; transition: all .15s; }
+.th-add:hover { border-color: var(--ink); color: var(--ink); }
+.th { aspect-ratio: 1; border-radius: var(--r-sm); overflow: hidden; border: 2px solid transparent; cursor: pointer; flex-shrink: 0; position: relative; background: var(--bg); transition: border-color .15s; }
+.th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.th.cur { border-color: var(--ink); }
+.th .badge { position: absolute; top: 3px; right: 3px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: 700; }
+.th.saved .badge { background: var(--green); color: #fff; }
+
+.preview { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.prev-img { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--bg); overflow: hidden; padding: 16px; min-height: 0; }
+.prev-img img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: var(--r-sm); }
+.prev-nav { border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; background: var(--surface); flex-shrink: 0; }
+.nav-btn { padding: 5px 13px; border: 1px solid var(--border-md); border-radius: 20px; background: var(--card); color: var(--ink-2); font-size: 12px; transition: all .15s; }
+.nav-btn:hover:not(:disabled) { border-color: var(--ink); color: var(--ink); }
+.nav-btn:disabled { opacity: .3; cursor: not-allowed; }
+.nav-ct { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+
+.tpanel { width: 272px; flex-shrink: 0; border-left: 1px solid var(--border); background: var(--card); display: flex; flex-direction: column; overflow: hidden; position: relative; }
+.tpanel-scroll { flex: 1; overflow-y: auto; }
+.tpanel-scroll::-webkit-scrollbar { width: 3px; }
+.tpanel-scroll::-webkit-scrollbar-thumb { background: var(--border-md); border-radius: 3px; }
+.psec { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.psec-label { font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 9px; }
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+.tc { padding: 4px 10px; border-radius: 20px; font-size: 12px; border: 1.5px solid; transition: all .15s; cursor: pointer; user-select: none; }
+.tc.off { opacity: .38; }
+.tc.on { opacity: 1; }
+.tc.style { background: var(--purple-bg); border-color: #C0B8F0; color: var(--purple); }
+.tc.industry { background: var(--teal-bg); border-color: #90D4D4; color: var(--teal); }
+.tc.brand { background: var(--blue-bg); border-color: #A8C8F0; color: var(--blue); }
+.note-ta { width: 100%; padding: 8px 10px; border: 1px solid var(--border-md); border-radius: var(--r-sm); font-size: 12px; resize: none; min-height: 62px; background: var(--surface); color: var(--ink); line-height: 1.5; }
+.note-ta:focus { outline: none; border-color: var(--ink); }
+
+.panel-foot { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; background: var(--card); }
+.btn-row { display: flex; gap: 6px; }
+.btn-outline { flex: 1; padding: 7px 8px; border: 1px solid var(--border-md); background: var(--surface); border-radius: var(--r-sm); font-size: 12px; color: var(--ink-2); text-align: center; transition: all .15s; }
+.btn-outline:hover { border-color: var(--ink); color: var(--ink); }
+.btn-claude { border-color: #9B8EE8; color: var(--purple); background: var(--purple-bg); }
+.btn-claude:hover { background: #E0D8FF; border-color: var(--purple); }
+.btn-save { width: 100%; padding: 10px; background: var(--ink); color: #fff; border: none; border-radius: var(--r-sm); font-size: 13px; font-weight: 700; transition: background .15s; }
+.btn-save:hover { background: var(--accent-2); }
+.btn-save:disabled { opacity: .3; cursor: not-allowed; }
+
+.cl-overlay { position: absolute; inset: 0; background: rgba(255,255,255,.9); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 10px; z-index: 10; }
+.cl-overlay.on { display: flex; }
+.spin { width: 22px; height: 22px; border: 2px solid var(--border-md); border-top-color: var(--purple); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.cl-txt { font-size: 12px; color: var(--ink-2); }
+
+.sv-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.sv-overlay.on { display: flex; }
+.sv-card { background: var(--card); border-radius: var(--r-lg); padding: 28px 36px; display: flex; flex-direction: column; align-items: center; gap: 12px; min-width: 220px; }
+.sv-title { font-size: 14px; font-weight: 600; }
+.sv-step { font-size: 12px; color: var(--ink-2); font-family: var(--mono); }
+.sv-bar-wrap { width: 100%; height: 3px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.sv-bar { height: 100%; background: var(--green); border-radius: 3px; transition: width .4s; }
+
+.gallery-inner { padding: 20px; max-width: 1100px; margin: 0 auto; width: 100%; }
+.g-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; margin-bottom: 18px; }
+.gs { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); padding: 11px 12px; text-align: center; }
+.gs-n { font-family: var(--mono); font-size: 20px; }
+.gs-l { font-size: 11px; color: var(--ink-3); margin-top: 1px; }
+.g-ctrl { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.g-input { flex: 1; min-width: 150px; padding: 8px 12px; border: 1px solid var(--border-md); border-radius: var(--r-sm); font-size: 13px; background: var(--card); color: var(--ink); }
+.g-input:focus { outline: none; border-color: var(--ink); }
+.g-sel { padding: 8px 12px; border: 1px solid var(--border-md); border-radius: var(--r-sm); font-size: 13px; background: var(--card); color: var(--ink); }
+.g-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.gi { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; cursor: pointer; transition: transform .15s, box-shadow .15s; }
+.gi:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.gi-img { height: 124px; background: var(--bg); overflow: hidden; }
+.gi-img img { width: 100%; height: 100%; object-fit: cover; }
+.gi-body { padding: 9px 11px; }
+.gi-brand { font-size: 10px; color: var(--ink-3); font-family: var(--mono); margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gi-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.gi-tag { font-size: 10px; padding: 2px 7px; border-radius: 20px; background: var(--purple-bg); border: 1px solid #C0B8F0; color: var(--purple); }
+.g-empty { grid-column: 1/-1; text-align: center; padding: 60px 20px; color: var(--ink-3); font-size: 14px; }
+
+.settings-inner { padding: 24px 20px; max-width: 560px; margin: 0 auto; width: 100%; }
+.s-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; margin-bottom: 16px; }
+.s-title { font-size: 13px; font-weight: 700; margin-bottom: 16px; }
+.tag-group { margin-bottom: 16px; }
+.tg-label { font-size: 11px; color: var(--ink-3); margin-bottom: 7px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.tg-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tg-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 12px; border: 1.5px solid; }
+.tg-chip button { background: none; border: none; padding: 0; line-height: 1; font-size: 12px; opacity: .5; cursor: pointer; }
+.tg-chip button:hover { opacity: 1; }
+.tg-add { display: flex; gap: 6px; }
+.tg-input { flex: 1; padding: 6px 10px; border: 1px solid var(--border-md); border-radius: var(--r-sm); font-size: 12px; background: var(--surface); color: var(--ink); }
+.tg-input:focus { outline: none; border-color: var(--ink); }
+.tg-addbtn { padding: 6px 14px; background: var(--ink); color: #fff; border: none; border-radius: var(--r-sm); font-size: 12px; }
+
+.brand-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+.brand-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border-radius: var(--r-sm); border: 1px solid var(--border); font-size: 13px; }
+.brand-item span { flex: 1; }
+.brand-item button { background: none; border: none; color: var(--ink-3); font-size: 14px; padding: 0 2px; }
+.brand-item button:hover { color: var(--red); }
+.brand-item.fixed button { display: none; opacity: .4; }
+.brand-add { display: flex; gap: 6px; }
+.brand-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border-md); border-radius: var(--r-sm); font-size: 13px; background: var(--surface); color: var(--ink); }
+.brand-input:focus { outline: none; border-color: var(--ink); }
+.brand-addbtn { padding: 8px 16px; background: var(--ink); color: #fff; border: none; border-radius: var(--r-sm); font-size: 13px; }
+
+.oauth-status { padding: 10px 14px; border-radius: var(--r-sm); font-size: 13px; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.oauth-status.ok { background: var(--green-bg); color: var(--green); border: 1px solid #A0D8B8; }
+.oauth-status.no { background: var(--yellow-bg); color: var(--yellow); border: 1px solid #F0CF80; }
+.btn-google { padding: 10px 18px; border: 1px solid var(--border-md); border-radius: var(--r-sm); font-size: 13px; background: var(--card); color: var(--ink); display: flex; align-items: center; gap: 8px; width: fit-content; transition: all .15s; }
+.btn-google:hover { border-color: var(--ink); }
+.btn-google svg { width: 16px; height: 16px; }
+
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.48); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+.modal-bg.on { display: flex; }
+.modal { background: var(--card); border-radius: var(--r-lg); max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal-hd { padding: 15px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.modal-hd-title { font-size: 14px; font-weight: 700; }
+.modal-x { background: none; border: none; color: var(--ink-3); font-size: 18px; }
+.modal-img { background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 180px; }
+.modal-img img { max-width: 100%; max-height: 300px; object-fit: contain; }
+.modal-body { padding: 18px; }
+.modal-lbl { font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+.modal-note { font-size: 13px; color: var(--ink-2); line-height: 1.6; margin-bottom: 14px; }
+.modal-date { font-size: 11px; color: var(--ink-3); font-family: var(--mono); }
+.modal-del { margin-top: 14px; padding: 7px 14px; border: 1px solid rgba(184,50,50,.35); color: var(--red); background: var(--red-bg); border-radius: var(--r-sm); font-size: 12px; }
+
+.bm-thumbs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 14px; }
+.bm-th { aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 2px solid transparent; cursor: pointer; position: relative; transition: all .15s; }
+.bm-th img { width: 100%; height: 100%; object-fit: cover; }
+.bm-th.sel { border-color: var(--ink); }
+.bm-th.sel::after { content: '✓'; position: absolute; inset: 0; background: rgba(0,0,0,.42); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 16px; }
+.bm-foot { display: flex; justify-content: flex-end; gap: 8px; }
+.bm-cancel { padding: 8px 16px; border: 1px solid var(--border-md); border-radius: var(--r-sm); background: var(--surface); font-size: 13px; }
+.bm-apply { padding: 8px 16px; background: var(--ink); color: #fff; border: none; border-radius: var(--r-sm); font-size: 13px; font-weight: 600; }
+
+.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 9px 20px; border-radius: 20px; font-size: 13px; z-index: 500; opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; font-weight: 500; }
+.toast.on { opacity: 1; }
+input[type=file] { display: none; }
+.crop-bg { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 400; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.crop-bg.on { display: flex; }
+.crop-wrap { position: relative; cursor: crosshair; user-select: none; }
+.crop-wrap img { display: block; max-width: 88vw; max-height: 65vh; object-fit: contain; }
+.crop-sel { position: absolute; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(0,0,0,.52); pointer-events: none; display: none; }
+.crop-sel.on { display: block; }
+.crop-toolbar { display: flex; gap: 10px; }
+.crop-btn { padding: 9px 22px; border-radius: 20px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; font-family: var(--sans); }
+.crop-btn.ok { background: #fff; color: #1C1A14; }
+.crop-btn.skip { background: rgba(255,255,255,.18); color: #fff; }
+.crop-hint { color: rgba(255,255,255,.45); font-size: 12px; }
+.tc.mtype { background: var(--yellow-bg); border-color: #F0CF80; color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm13 3h2v-2h2v2h2v2h-2v2h-2v-2h-2v-2z"/></svg></div>
+  <span class="hdr-title">素材庫</span>
+  <div class="hdr-nav">
+    <button class="hn on" onclick="nav('upload')">上傳</button>
+    <button class="hn" onclick="nav('gallery')">素材庫</button>
+    <button class="hn" onclick="nav('settings')">設定</button>
+  </div>
+  <div class="hdr-right">
+    <button class="hdr-btn" id="gdriveBtn" onclick="handleGoogleAuth()">Google Drive</button>
+    <span class="pill" id="totalPill">0 張</span>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div class="pg on" id="pg-upload">
+  <div class="dz-wrap" id="dzWrap">
+    <div class="dz" id="dz" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)" onclick="document.getElementById('fi').click()">
+      <div class="dz-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M3 15l5-5 5 5 3-3 5 5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h3>拖曳圖片到這裡</h3>
+      <p>支援 JPG、PNG、WebP<br>可一次選擇多張批次上傳</p>
+      <button class="dz-cta" onclick="event.stopPropagation();document.getElementById('fi').click()">選擇圖片</button>
+    </div>
+  </div>
+  <div class="editor" id="editor">
+    <div class="strip" id="strip">
+      <div class="th-add" onclick="document.getElementById('fi').click()">+</div>
+    </div>
+    <div class="preview">
+      <div class="prev-img"><img id="prevImg" src="" alt=""></div>
+      <div class="prev-nav">
+        <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">← 上一張</button>
+        <span class="nav-ct" id="navCt">1 / 1</span>
+        <button class="nav-btn" onclick="openCrop()">✂ 裁切</button>
+        <button class="nav-btn" id="nextBtn" onclick="navigate(1)">下一張 →</button>
+      </div>
+    </div>
+    <div class="tpanel" id="tpanel">
+      <div class="cl-overlay" id="clOverlay">
+        <div class="spin"></div><span class="cl-txt">Claude 分析中…</span>
+      </div>
+      <div class="tpanel-scroll">
+        <div class="psec"><div class="psec-label">內容風格</div><div class="tags-wrap" id="pStyle"></div></div>
+        <div class="psec"><div class="psec-label">素材類型</div><div class="tags-wrap" id="pMtype"></div></div>
+        <div class="psec"><div class="psec-label">產業別</div><div class="tags-wrap" id="pIndustry"></div></div>
+        <div class="psec"><div class="psec-label">適合品牌</div><div class="tags-wrap" id="pBrand"></div></div>
+        <div class="psec"><div class="psec-label">備註</div><textarea class="note-ta" id="noteTA" placeholder="記下這張素材的用途或想法…"></textarea></div>
+      </div>
+      <div class="panel-foot">
+        <div class="btn-row">
+          <button class="btn-outline btn-claude" onclick="runClaude()">✦ Claude 分析</button>
+          <button class="btn-outline" onclick="openBatch()">套用多張</button>
+        </div>
+        <button class="btn-save" onclick="saveCurrent()">儲存此張</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GALLERY -->
+<div class="pg scroll" id="pg-gallery">
+  <div class="gallery-inner">
+    <div class="g-stats" id="gStats"></div>
+    <div class="g-ctrl">
+      <input class="g-input" placeholder="搜尋備註或標籤…" id="gSearch" oninput="renderGallery()">
+      <select class="g-sel" id="gBrand" onchange="renderGallery()"><option value="">全部品牌</option></select>
+      <select class="g-sel" id="gTag" onchange="renderGallery()"><option value="">全部標籤</option></select>
+    </div>
+    <div class="g-grid" id="gGrid"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="pg scroll" id="pg-settings">
+  <div class="settings-inner">
+    <div class="s-section">
+      <div class="s-title">Google Drive 授權</div>
+      <div class="oauth-status no" id="oauthStatus">尚未授權</div>
+      <button class="btn-google" onclick="handleGoogleAuth()">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        <span id="gAuthBtnTxt">連結 Google Drive</span>
+      </button>
+    </div>
+    <div class="s-section">
+      <div class="s-title">品牌管理</div>
+      <div class="brand-list" id="brandList"></div>
+      <div class="brand-add">
+        <input class="brand-input" id="brandInput" placeholder="新增品牌名稱…" onkeydown="if(event.key==='Enter')addBrand()">
+        <button class="brand-addbtn" onclick="addBrand()">新增</button>
+      </div>
+    </div>
+    <div class="s-section">
+      <div class="s-title">標籤管理</div>
+      <div class="tag-group">
+        <div class="tg-label">內容風格</div>
+        <div class="tg-list" id="mgStyle"></div>
+        <div class="tg-add"><input class="tg-input" id="inStyle" placeholder="新增標籤…" onkeydown="if(event.key==='Enter')addTag('style',this)"><button class="tg-addbtn" onclick="addTag('style',document.getElementById('inStyle'))">+</button></div>
+      </div>
+      <div class="tag-group">
+        <div class="tg-label">素材類型</div>
+        <div class="tg-list" id="mgMtype"></div>
+        <div class="tg-add"><input class="tg-input" id="inMtype" placeholder="新增標籤…" onkeydown="if(event.key==='Enter')addTag('mtype',this)"><button class="tg-addbtn" onclick="addTag('mtype',document.getElementById('inMtype'))">+</button></div>
+      </div>
+      <div class="tag-group">
+        <div class="tg-label">產業別</div>
+        <div class="tg-list" id="mgIndustry"></div>
+        <div class="tg-add"><input class="tg-input" id="inIndustry" placeholder="新增標籤…" onkeydown="if(event.key==='Enter')addTag('industry',this)"><button class="tg-addbtn" onclick="addTag('industry',document.getElementById('inIndustry'))">+</button></div>
+      </div>
+    </div>
+    <div class="s-section">
+      <div class="s-title">Notion 整合</div>
+      <div class="oauth-status ok">已設定 Token，儲存時自動同步寫入</div>
+    </div>
+  </div>
+</div>
+
+<!-- saving overlay -->
+<div class="sv-overlay" id="svOverlay">
+  <div class="sv-card">
+    <div class="spin" style="border-top-color:var(--green);width:28px;height:28px;border-width:3px"></div>
+    <div class="sv-title">儲存中…</div>
+    <div class="sv-step" id="svStep">準備中</div>
+    <div class="sv-bar-wrap"><div class="sv-bar" id="svBar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- detail modal -->
+<div class="modal-bg" id="detailModal">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-hd-title" id="mBrand"></span><button class="modal-x" onclick="closeDetail()">✕</button></div>
+    <div class="modal-img"><img id="mImg" src="" alt=""></div>
+    <div class="modal-body">
+      <div class="modal-lbl" style="margin-bottom:8px">標籤</div>
+      <div class="tags-wrap" id="mTags" style="margin-bottom:14px"></div>
+      <div class="modal-lbl">備註</div>
+      <div class="modal-note" id="mNote"></div>
+      <div class="modal-date" id="mDate"></div>
+      <button class="modal-del" onclick="deleteItem()">刪除此素材</button>
+    </div>
+  </div>
+</div>
+
+<!-- batch modal -->
+<div class="modal-bg" id="batchModal">
+  <div class="modal">
+    <div class="modal-hd"><span class="modal-hd-title">套用標籤到多張</span><button class="modal-x" onclick="closeBatch()">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--ink-2);margin-bottom:14px;line-height:1.6">選擇要套用目前標籤設定的圖片：</p>
+      <div class="bm-thumbs" id="bmThumbs"></div>
+      <div class="bm-foot">
+        <button class="bm-cancel" onclick="closeBatch()">取消</button>
+        <button class="bm-apply" onclick="applyBatch()">套用</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- crop modal -->
+<div class="crop-bg" id="cropBg">
+  <div class="crop-wrap" id="cropWrap">
+    <img id="cropImg" src="" alt="">
+    <div class="crop-sel" id="cropSel"></div>
+  </div>
+  <div class="crop-toolbar">
+    <button class="crop-btn ok" onclick="confirmCrop()">確認裁切</button>
+    <button class="crop-btn skip" onclick="closeCrop()">取消</button>
+  </div>
+  <div class="crop-hint">拖曳選取要保留的區域</div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="fi" accept="image/*" multiple onchange="handleFiles(this.files)">
+
+<script>
+const NOTION_DB = '3342bcca8bca8003b817f2e9a8ba0b3b';
+const GOOGLE_CLIENT_ID = '356582670791-ifgbptdrfv3t8kb75dicbmmgi5ap08ff.apps.googleusercontent.com';
+const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_ROOT = '素材庫';
+const PROXY_CLAUDE = '/.netlify/functions/claude-proxy';
+const PROXY_NOTION = '/.netlify/functions/notion-proxy';
+
+let STATE = JSON.parse(localStorage.getItem('mcs_v4') || '{}');
+if (!STATE.brands) STATE.brands = ['大立休閒運動廣場','蟑螂老爹','白蟻媽媽','Core Plus 動力美學館','其他'];
+if (!STATE.tags) STATE.tags = {
+  style: ['趣味幽默','溫馨情感','知識乾貨','促銷折扣','電商產品','課程招募','品牌形象','互動遊戲','節日限定','案例分享'],
+  mtype: ['文案','圖片','其他'],
+  industry: ['運動休閒','居家生活','美容保養','餐飲食品','教育培訓','健康醫療','害蟲防治','電商零售','服飾配件','寵物']
+};
+if (!STATE.materials) STATE.materials = [];
+
+let queue = [], cur = 0, detailId = null;
+let googleToken = localStorage.getItem('g_token') || null;
+let googleTokenExp = parseInt(localStorage.getItem('g_token_exp') || '0');
+let folderCache = {};
+
+function saveState() { localStorage.setItem('mcs_v4', JSON.stringify(STATE)); }
+function isAuthed() { return googleToken && Date.now() < googleTokenExp; }
+
+// ── NAV ──
+function nav(p) {
+  document.querySelectorAll('.pg').forEach(el => el.classList.remove('on'));
+  document.querySelectorAll('.hn').forEach((el,i) => el.classList.toggle('on', ['upload','gallery','settings'][i]===p));
+  document.getElementById('pg-'+p).classList.add('on');
+  if (p==='gallery') renderGallery();
+  if (p==='settings') renderSettings();
+}
+
+// ── GOOGLE AUTH ──
+function handleGoogleAuth() {
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: window.location.origin + window.location.pathname,
+    response_type: 'token',
+    scope: GOOGLE_SCOPES,
+  });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+}
+
+function checkCallback() {
+  const hash = window.location.hash;
+  if (!hash) return;
+  const p = new URLSearchParams(hash.slice(1));
+  const token = p.get('access_token');
+  if (token) {
+    googleToken = token;
+    googleTokenExp = Date.now() + parseInt(p.get('expires_in')) * 1000;
+    localStorage.setItem('g_token', token);
+    localStorage.setItem('g_token_exp', googleTokenExp);
+    window.history.replaceState({}, '', window.location.pathname);
+    updateAuthUI();
+    showToast('Google Drive 授權成功 ✓');
+  }
+}
+
+function updateAuthUI() {
+  const authed = isAuthed();
+  const btn = document.getElementById('gdriveBtn');
+  btn.classList.toggle('connected', authed);
+  btn.textContent = authed ? 'Drive 已連結' : 'Google Drive';
+  const status = document.getElementById('oauthStatus');
+  if (status) {
+    status.className = 'oauth-status ' + (authed ? 'ok' : 'no');
+    status.textContent = authed ? 'Google Drive 已授權，圖片將自動上傳並分類' : '尚未授權';
+  }
+  const btnTxt = document.getElementById('gAuthBtnTxt');
+  if (btnTxt) btnTxt.textContent = authed ? '重新授權' : '連結 Google Drive';
+}
+
+// ── DRIVE ──
+async function driveGet(url) {
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + googleToken } });
+  if (!r.ok) throw new Error('Drive ' + r.status);
+  return r.json();
+}
+async function drivePost(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + googleToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (!r.ok) throw new Error('Drive ' + r.status);
+  return r.json();
+}
+
+async function getOrCreateFolder(name, parentId = null) {
+  const key = (parentId||'root') + '/' + name;
+  if (folderCache[key]) return folderCache[key];
+  const q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and trashed=false and '${parentId||'root'}' in parents`;
+  const list = await driveGet(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+  if (list.files?.length) { folderCache[key] = list.files[0].id; return list.files[0].id; }
+  const body = { name, mimeType: 'application/vnd.google-apps.folder' };
+  if (parentId) body.parents = [parentId];
+  const f = await drivePost('https://www.googleapis.com/drive/v3/files', body);
+  folderCache[key] = f.id; return f.id;
+}
+
+async function uploadToDrive(dataUrl, filename, folderId) {
+  const blob = dataUrlToBlob(dataUrl);
+  const meta = JSON.stringify({ name: filename, parents: [folderId] });
+  const form = new FormData();
+  form.append('metadata', new Blob([meta], { type: 'application/json' }));
+  form.append('file', blob);
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + googleToken }, body: form
+  });
+  if (!r.ok) throw new Error('Upload ' + r.status);
+  const f = await r.json();
+  await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}/permissions`, {
+    method: 'POST', headers: { Authorization: 'Bearer ' + googleToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'reader', type: 'anyone' })
+  });
+  return `https://drive.google.com/uc?export=view&id=${f.id}`;
+}
+
+function dataUrlToBlob(dataUrl) {
+  const [header, data] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const bytes = atob(data);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// ── NOTION ──
+async function notionCreate(material, imageUrl) {
+  const props = {
+    '名稱': { title: [{ text: { content: material.name || '素材' } }] },
+    '品牌': { multi_select: (material.brands||[]).map(b => ({ name: b })) },
+    '標籤': { multi_select: (material.tags||[]).map(t => ({ name: t })) },
+    '備註': { rich_text: [{ text: { content: material.note || '' } }] },
+    '日期': { date: { start: new Date().toISOString().split('T')[0] } },
+  };
+  if (imageUrl) props['圖片'] = { files: [{ name: material.name || 'image', external: { url: imageUrl } }] };
+
+  const r = await fetch(PROXY_NOTION, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ databaseId: NOTION_DB, properties: props })
+  });
+  if (!r.ok) throw new Error('Notion ' + r.status);
+  return r.json();
+}
+
+// ── FILES ──
+function onDragOver(e) { e.preventDefault(); document.getElementById('dz').classList.add('drag'); }
+function onDragLeave() { document.getElementById('dz').classList.remove('drag'); }
+function onDrop(e) { e.preventDefault(); document.getElementById('dz').classList.remove('drag'); handleFiles(e.dataTransfer.files); }
+
+function handleFiles(files) {
+  const imgs = [...files].filter(f => f.type.startsWith('image/'));
+  if (!imgs.length) return;
+  let done = 0; const startIdx = queue.length;
+  imgs.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      queue.push({ dataUrl: e.target.result, name: f.name, tags: [], brands: [], note: '' });
+      if (++done === imgs.length) { showEditor(); goTo(startIdx); }
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function showEditor() {
+  document.getElementById('dzWrap').style.display = 'none';
+  document.getElementById('editor').classList.add('on');
+  renderStrip();
+}
+
+// ── STRIP ──
+function renderStrip() {
+  const strip = document.getElementById('strip');
+  [...strip.querySelectorAll('.th')].forEach(el => el.remove());
+  queue.forEach((item, i) => {
+    const div = document.createElement('div');
+    const done = item.tags?.length > 0 || item.brands?.length > 0;
+    div.className = `th ${i===cur?'cur':''} ${done?'saved':''}`;
+    div.innerHTML = `<img src="${item.dataUrl}"><span class="badge">${done?'✓':''}</span>`;
+    div.onclick = () => { saveCurrentState(); goTo(i); };
+    strip.appendChild(div);
+  });
+}
+
+function refreshThumb(i) {
+  const thumbs = document.getElementById('strip').querySelectorAll('.th');
+  if (!thumbs[i]) return;
+  const done = queue[i].tags?.length > 0 || queue[i].brands?.length > 0;
+  thumbs[i].className = `th ${i===cur?'cur':''} ${done?'saved':''}`;
+  thumbs[i].querySelector('.badge').textContent = done ? '✓' : '';
+}
+
+// ── NAV ──
+function goTo(i) { cur = i; renderCurrent(); }
+function navigate(dir) { saveCurrentState(); goTo(Math.max(0, Math.min(queue.length-1, cur+dir))); }
+
+function saveCurrentState() {
+  if (!queue[cur]) return;
+  queue[cur].tags = getAllTags();
+  queue[cur].brands = getSelected('pBrand');
+  queue[cur].note = document.getElementById('noteTA').value;
+  refreshThumb(cur);
+}
+
+function renderCurrent() {
+  const item = queue[cur];
+  if (!item) return;
+  document.getElementById('prevImg').src = item.dataUrl;
+  document.getElementById('navCt').textContent = `${cur+1} / ${queue.length}`;
+  document.getElementById('prevBtn').disabled = cur === 0;
+  document.getElementById('nextBtn').disabled = cur === queue.length-1;
+  clearChips();
+  if (item.tags) setSelectedIn(['pStyle','pMtype','pIndustry'], item.tags);
+  if (item.brands) setSelectedIn(['pBrand'], item.brands);
+  document.getElementById('noteTA').value = item.note || '';
+  document.querySelectorAll('.th').forEach((el,i) => el.classList.toggle('cur', i===cur));
+}
+
+// ── CHIPS ──
+function buildPanelChips() {
+  buildGroup('pStyle', STATE.tags.style, 'style');
+  buildGroup('pMtype', STATE.tags.mtype, 'mtype');
+  buildGroup('pIndustry', STATE.tags.industry, 'industry');
+  buildGroup('pBrand', STATE.brands, 'brand');
+}
+
+function buildGroup(id, tags, cls) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = tags.map(t =>
+    `<span class="tc ${cls} off" onclick="this.classList.toggle('on');this.classList.toggle('off')" data-tag="${t}">${t}</span>`
+  ).join('');
+}
+
+function clearChips() {
+  document.querySelectorAll('#pStyle .tc, #pMtype .tc, #pIndustry .tc, #pBrand .tc').forEach(el => {
+    el.classList.remove('on'); el.classList.add('off');
+  });
+}
+
+function getSelected(pid) {
+  return [...document.querySelectorAll(`#${pid} .tc.on`)].map(el => el.dataset.tag);
+}
+
+function getAllTags() {
+  return [...getSelected('pStyle'), ...getSelected('pMtype'), ...getSelected('pIndustry')];
+}
+
+function setSelectedIn(pids, tags) {
+  pids.forEach(pid => {
+    document.querySelectorAll(`#${pid} .tc`).forEach(el => {
+      const on = tags.includes(el.dataset.tag);
+      el.classList.toggle('on', on); el.classList.toggle('off', !on);
+    });
+  });
+}
+
+// ── CLAUDE ──
+async function runClaude() {
+  const item = queue[cur];
+  if (!item) return;
+  document.getElementById('clOverlay').classList.add('on');
+  const b64 = item.dataUrl.split(',')[1];
+  const mime = item.dataUrl.split(';')[0].split(':')[1];
+  try {
+    const r = await fetch(PROXY_CLAUDE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 600,
+        system: `分析圖片輸出純 JSON（不含 markdown）：
+{"style":["最多3個，從：${STATE.tags.style.join('、')}"],"mtype":["1個，從：${STATE.tags.mtype.join('、')}"],"industry":["最多2個，從：${STATE.tags.industry.join('、')}"],"brands":["最適合1-3個，從：${STATE.brands.join('、')}"],"note":"25字內說明素材用途"}`,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: mime, data: b64 } },
+          { type: 'text', text: '分析' }
+        ]}]
+      })
+    });
+    const data = await r.json();
+    const txt = data.content?.find(c => c.type==='text')?.text || '{}';
+    const res = JSON.parse(txt.replace(/```json|```/g,'').trim());
+    clearChips();
+    setSelectedIn(['pStyle'], res.style || []);
+    setSelectedIn(['pMtype'], res.mtype || []);
+    setSelectedIn(['pIndustry'], res.industry || []);
+    setSelectedIn(['pBrand'], res.brands || []);
+    document.getElementById('noteTA').value = res.note || '';
+    showToast('Claude 分析完成，請確認標籤');
+  } catch(e) { showToast('分析失敗：' + e.message); }
+  document.getElementById('clOverlay').classList.remove('on');
+}
+
+// ── SAVE ──
+async function saveCurrent() {
+  saveCurrentState();
+  const item = queue[cur];
+  const brands = getSelected('pBrand');
+  const tags = getAllTags();
+  if (brands.length === 0) { showToast('請至少選擇一個品牌'); return; }
+
+  const sv = document.getElementById('svOverlay');
+  const svStep = document.getElementById('svStep');
+  const svBar = document.getElementById('svBar');
+  sv.classList.add('on');
+  let imageUrl = null;
+
+  try {
+    if (isAuthed()) {
+      svStep.textContent = '建立 Drive 資料夾…';
+      svBar.style.width = '15%';
+      const rootId = await getOrCreateFolder(DRIVE_ROOT);
+      const filename = item.name || ('img_' + Date.now() + '.jpg');
+
+      for (let i = 0; i < tags.length; i++) {
+        svStep.textContent = `上傳至：${tags[i]}`;
+        svBar.style.width = (15 + (i / tags.length) * 50) + '%';
+        const folderId = await getOrCreateFolder(tags[i], rootId);
+        const url = await uploadToDrive(item.dataUrl, filename, folderId);
+        if (i === 0) imageUrl = url;
+      }
+      if (tags.length === 0) {
+        const uncatId = await getOrCreateFolder('未分類', rootId);
+        imageUrl = await uploadToDrive(item.dataUrl, filename, uncatId);
+      }
+    }
+
+    svStep.textContent = '寫入 Notion…';
+    svBar.style.width = '75%';
+    try {
+      await notionCreate({ ...item, tags, brands }, imageUrl);
+    } catch(e) { console.warn('Notion failed:', e.message); }
+
+    svBar.style.width = '90%';
+    svStep.textContent = '儲存本地…';
+    const mat = {
+      id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+      dataUrl: item.dataUrl, name: item.name,
+      tags, brands, note: item.note, imageUrl,
+      date: new Date().toLocaleDateString('zh-TW')
+    };
+    STATE.materials.unshift(mat);
+    saveState();
+    svBar.style.width = '100%';
+    await new Promise(r => setTimeout(r, 350));
+    sv.classList.remove('on');
+
+    queue.splice(cur, 1);
+    if (queue.length === 0) {
+      document.getElementById('editor').classList.remove('on');
+      document.getElementById('dzWrap').style.display = '';
+      document.getElementById('fi').value = '';
+      folderCache = {};
+    } else {
+      cur = Math.min(cur, queue.length-1);
+      renderStrip(); renderCurrent();
+    }
+    updatePill();
+    showToast('儲存成功 ✓');
+  } catch(e) {
+    sv.classList.remove('on');
+    showToast('儲存失敗：' + e.message);
+  }
+}
+
+// ── BATCH ──
+function openBatch() {
+  saveCurrentState();
+  document.getElementById('bmThumbs').innerHTML = queue.map((item,i) => i===cur ? '' :
+    `<div class="bm-th" data-idx="${i}" onclick="this.classList.toggle('sel')"><img src="${item.dataUrl}"></div>`
+  ).join('');
+  document.getElementById('batchModal').classList.add('on');
+}
+function closeBatch() { document.getElementById('batchModal').classList.remove('on'); }
+function applyBatch() {
+  const tags = getAllTags(); const brands = getSelected('pBrand'); const note = document.getElementById('noteTA').value;
+  const sels = document.querySelectorAll('#bmThumbs .bm-th.sel');
+  sels.forEach(el => {
+    const i = parseInt(el.dataset.idx);
+    queue[i].tags = [...tags]; queue[i].brands = [...brands]; queue[i].note = note;
+  });
+  renderStrip(); closeBatch();
+  showToast(`已套用到 ${sels.length} 張`);
+}
+
+// ── GALLERY ──
+function renderGallery() {
+  const search = document.getElementById('gSearch').value.toLowerCase();
+  const brand = document.getElementById('gBrand').value;
+  const tag = document.getElementById('gTag').value;
+  const mats = STATE.materials;
+
+  const allBrands = new Set(); const allTags = new Set();
+  mats.forEach(m => { m.brands?.forEach(b => allBrands.add(b)); m.tags?.forEach(t => allTags.add(t)); });
+  document.getElementById('gBrand').innerHTML = '<option value="">全部品牌</option>' + [...allBrands].map(b => `<option value="${b}"${b===brand?' selected':''}>${b}</option>`).join('');
+  document.getElementById('gTag').innerHTML = '<option value="">全部標籤</option>' + [...allTags].map(t => `<option value="${t}"${t===tag?' selected':''}>${t}</option>`).join('');
+
+  const bc = {}; mats.forEach(m => m.brands?.forEach(b => bc[b]=(bc[b]||0)+1));
+  const top = Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('gStats').innerHTML =
+    `<div class="gs"><div class="gs-n">${mats.length}</div><div class="gs-l">全部</div></div>` +
+    top.map(([n,c]) => `<div class="gs"><div class="gs-n">${c}</div><div class="gs-l">${n.slice(0,6)}</div></div>`).join('');
+
+  const filtered = mats.filter(m => {
+    const ms = !search || m.note?.toLowerCase().includes(search) || m.tags?.some(t=>t.includes(search));
+    const mb = !brand || m.brands?.includes(brand);
+    const mt = !tag || m.tags?.includes(tag);
+    return ms && mb && mt;
+  });
+
+  const grid = document.getElementById('gGrid');
+  if (!filtered.length) { grid.innerHTML = '<div class="g-empty">沒有符合條件的素材</div>'; return; }
+  grid.innerHTML = filtered.map(m => `
+    <div class="gi" onclick="openDetail('${m.id}')">
+      <div class="gi-img"><img src="${m.imageUrl || m.dataUrl}" loading="lazy" onerror="this.src='${m.dataUrl}'"></div>
+      <div class="gi-body">
+        <div class="gi-brand">${m.brands?.join(' · ')||''}</div>
+        <div class="gi-tags">${(m.tags||[]).slice(0,3).map(t=>`<span class="gi-tag">${t}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── DETAIL ──
+function openDetail(id) {
+  const m = STATE.materials.find(x=>x.id===id);
+  if (!m) return;
+  detailId = id;
+  document.getElementById('mBrand').textContent = m.brands?.join(' / ')||'';
+  document.getElementById('mImg').src = m.imageUrl || m.dataUrl;
+  document.getElementById('mTags').innerHTML = (m.tags||[]).map(t=>`<span class="tc style on" style="cursor:default">${t}</span>`).join('');
+  document.getElementById('mNote').textContent = m.note||'（無備註）';
+  document.getElementById('mDate').textContent = '儲存日期：' + m.date;
+  document.getElementById('detailModal').classList.add('on');
+}
+function closeDetail() { document.getElementById('detailModal').classList.remove('on'); detailId=null; }
+function deleteItem() {
+  if (!detailId) return;
+  STATE.materials = STATE.materials.filter(m=>m.id!==detailId);
+  saveState(); closeDetail(); renderGallery(); showToast('已刪除');
+}
+document.getElementById('detailModal').addEventListener('click', e => { if(e.target.id==='detailModal') closeDetail(); });
+document.getElementById('batchModal').addEventListener('click', e => { if(e.target.id==='batchModal') closeBatch(); });
+
+// ── SETTINGS ──
+function renderSettings() {
+  document.getElementById('brandList').innerHTML = STATE.brands.map((b,i) =>
+    `<div class="brand-item ${b==='其他'?'fixed':''}"><span>${b}</span><button onclick="removeBrand(${i})">✕</button></div>`
+  ).join('');
+  renderTagMgr('mgStyle','style');
+  renderTagMgr('mgMtype','mtype');
+  renderTagMgr('mgIndustry','industry');
+  updateAuthUI();
+}
+
+function renderTagMgr(containerId, type) {
+  const clsMap = { style:'style', industry:'industry' };
+  document.getElementById(containerId).innerHTML = STATE.tags[type].map((t,i) =>
+    `<span class="tg-chip tc ${clsMap[type]} on">${t}<button onclick="removeTag('${type}',${i})">✕</button></span>`
+  ).join('');
+}
+
+function addBrand() {
+  const inp = document.getElementById('brandInput');
+  const name = inp.value.trim();
+  if (!name || STATE.brands.includes(name)) { inp.value=''; return; }
+  STATE.brands.splice(STATE.brands.length-1, 0, name);
+  saveState(); buildPanelChips(); renderSettings(); inp.value='';
+  showToast('已新增品牌：' + name);
+}
+function removeBrand(i) {
+  if (STATE.brands[i]==='其他') return;
+  STATE.brands.splice(i,1); saveState(); buildPanelChips(); renderSettings();
+}
+function addTag(type, inputEl) {
+  const name = inputEl.value.trim();
+  if (!name || STATE.tags[type].includes(name)) { inputEl.value=''; return; }
+  STATE.tags[type].push(name);
+  saveState(); buildPanelChips(); renderSettings(); inputEl.value='';
+  showToast('已新增標籤：' + name);
+}
+function removeTag(type, i) {
+  STATE.tags[type].splice(i,1); saveState(); buildPanelChips(); renderSettings();
+}
+
+// ── CROP ──
+let cropStart = null, cropRect = null;
+
+function openCrop() {
+  const item = queue[cur];
+  if (!item) return;
+  const img = document.getElementById('cropImg');
+  img.src = item.dataUrl;
+  document.getElementById('cropSel').classList.remove('on');
+  cropRect = null;
+  document.getElementById('cropBg').classList.add('on');
+
+  const wrap = document.getElementById('cropWrap');
+  wrap.onmousedown = startCrop;
+  wrap.ontouchstart = e => startCrop(e.touches[0]);
+}
+
+function startCrop(e) {
+  const wrap = document.getElementById('cropWrap');
+  const rect = wrap.getBoundingClientRect();
+  cropStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  const sel = document.getElementById('cropSel');
+  sel.classList.add('on');
+  sel.style.left = cropStart.x + 'px';
+  sel.style.top = cropStart.y + 'px';
+  sel.style.width = '0';
+  sel.style.height = '0';
+
+  const onMove = ev => {
+    const pt = ev.touches ? ev.touches[0] : ev;
+    const x = Math.max(0, Math.min(pt.clientX - rect.left, wrap.offsetWidth));
+    const y = Math.max(0, Math.min(pt.clientY - rect.top, wrap.offsetHeight));
+    const l = Math.min(cropStart.x, x), t = Math.min(cropStart.y, y);
+    const w = Math.abs(x - cropStart.x), h = Math.abs(y - cropStart.y);
+    sel.style.left = l + 'px'; sel.style.top = t + 'px';
+    sel.style.width = w + 'px'; sel.style.height = h + 'px';
+    cropRect = { l, t, w, h };
+  };
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onUp);
+  };
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchmove', onMove);
+  document.addEventListener('touchend', onUp);
+}
+
+function confirmCrop() {
+  if (!cropRect || cropRect.w < 10 || cropRect.h < 10) { showToast('請先拖曳選取範圍'); return; }
+  const img = document.getElementById('cropImg');
+  const displayW = img.offsetWidth, displayH = img.offsetHeight;
+  const natW = img.naturalWidth, natH = img.naturalHeight;
+  const scaleX = natW / displayW, scaleY = natH / displayH;
+  const sx = cropRect.l * scaleX, sy = cropRect.t * scaleY;
+  const sw = cropRect.w * scaleX, sh = cropRect.h * scaleY;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(sw); canvas.height = Math.round(sh);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  queue[cur].dataUrl = croppedDataUrl;
+  document.getElementById('prevImg').src = croppedDataUrl;
+  // update thumb
+  const thumbs = document.getElementById('strip').querySelectorAll('.th img');
+  if (thumbs[cur]) thumbs[cur].src = croppedDataUrl;
+  closeCrop();
+  showToast('裁切完成');
+}
+
+function closeCrop() {
+  document.getElementById('cropBg').classList.remove('on');
+  document.getElementById('cropWrap').onmousedown = null;
+}
+
+// ── UTILS ──
+function updatePill() { document.getElementById('totalPill').textContent = STATE.materials.length + ' 張'; }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  setTimeout(() => t.classList.remove('on'), 2400);
+}
+
+checkCallback();
+updateAuthUI();
+buildPanelChips();
+updatePill();
+</script>
+</body>
+</html>
