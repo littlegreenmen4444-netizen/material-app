@@ -1,6 +1,9 @@
 {
   "functions": {
-    "api/*.js": {
+    "api/claude-proxy.js": {
+      "runtime": "edge"
+    },
+    "api/notion-proxy.js": {
       "runtime": "edge"
     }
   }
